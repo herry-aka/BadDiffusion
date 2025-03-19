@@ -8,7 +8,7 @@ import warnings
 
 from datasets import load_dataset, concatenate_datasets
 import datasets
-from datasets.dataset_dict import DatasetDict
+from datasets import DatasetDict
 from matplotlib import pyplot as plt
 import numpy as np
 import torch

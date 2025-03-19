@@ -13,6 +13,7 @@ from dataset import DatasetLoader, Backdoor, ImagePathDataset
 from fid_score import fid
 from util import Log
 
+#模式定义
 MODE_TRAIN: str = 'train'
 MODE_RESUME: str = 'resume'
 MODE_SAMPLING: str = 'sampling'
@@ -42,15 +43,23 @@ DEFAULT_IS_SAVE_ALL_MODEL_EPOCHS: bool = False
 DEFAULT_SAMPLE_EPOCH: int = None
 DEFAULT_RESULT: int = '.'
 
+# 训练模式不使用的参数
 NOT_MODE_TRAIN_OPTS = ['sample_ep']
+# 训练并测量模式不使用的参数
 NOT_MODE_TRAIN_MEASURE_OPTS = ['sample_ep']
 MODE_RESUME_OPTS = ['project', 'mode', 'gpu', 'ckpt']
+# 采样模式使用的参数
 MODE_SAMPLING_OPTS = ['project', 'mode', 'eval_max_batch', 'gpu', 'fclip', 'ckpt', 'sample_ep', 'sched']
+# 测量模式使用的参数
 MODE_MEASURE_OPTS = ['project', 'mode', 'eval_max_batch', 'gpu', 'fclip', 'ckpt', 'sample_ep', 'sched']
 # IGNORE_ARGS = ['overwrite']
+# 忽略的参数
 IGNORE_ARGS = ['overwrite', 'is_save_all_model_epochs']
 
 def parse_args():
+    """
+    解析命令行参数
+    """
     parser = argparse.ArgumentParser(description=globals()['__doc__'])
 
     parser.add_argument('--project', '-pj', required=False, type=str, help='Project name')
@@ -83,6 +92,9 @@ def parse_args():
 
 @dataclass
 class TrainingConfig:
+    """
+    训练配置类，包含训练所需的各种参数
+    """
     project: str = DEFAULT_PROJECT
     batch: int = DEFAULT_BATCH
     epoch: int = DEFAULT_EPOCH
@@ -128,16 +140,33 @@ class TrainingConfig:
     # hub_token = "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"
 
 def naming_fn(config: TrainingConfig):
+    """
+    生成结果文件夹的名称
+    :param config: 训练配置
+    :return: 结果文件夹名称
+    """ 
     add_on: str = ""
     # add_on += "_clip" if config.clip else ""
     add_on += f"_{config.postfix}" if config.postfix else ""
     return f'res_{config.ckpt}_{config.dataset}_ep{config.epoch}_c{config.clean_rate}_p{config.poison_rate}_{config.trigger}-{config.target}{add_on}'
 
 def read_json(args: argparse.Namespace, file: str):
+    """
+    读取 JSON 文件
+    :param args: 命令行参数
+    :param file: 文件名
+    :return: JSON 数据
+    """
     with open(os.path.join(args.ckpt, file), "r") as f:
         return json.load(f)
 
 def write_json(content: Dict, config: argparse.Namespace, file: str):
+    """
+    写入 JSON 文件
+    :param content: 要写入的内容
+    :param config: 配置参数
+    :param file: 文件名
+    """
     with open(os.path.join(config.output_dir, file), "w") as f:
         return json.dump(content, f, indent=2)
 
@@ -243,7 +272,7 @@ def setup():
         os.makedirs(config.ckpt_path, exist_ok=True)
     
     name_id = str(config.output_dir).split('/')[-1]
-    wandb.init(project=config.project, name=name_id, id=name_id, settings=wandb.Settings(start_method="fork"))
+    wandb.init(project=config.project, name=name_id, id=name_id, settings=wandb.Settings(start_method="thread"))
     print(f"Argument Final: {config.__dict__}")
     return config
 
@@ -263,7 +292,7 @@ from accelerate import Accelerator
 from tqdm.auto import tqdm
 
 from diffusers import DDPMPipeline
-from diffusers.optimization import get_cosine_schedule_with_warmup
+from diffusers import get_cosine_schedule_with_warmup
 
 from model import DiffuserModelSched, batch_sampling, batch_sampling_save
 # from util import Samples, MemoryLog, match_count
